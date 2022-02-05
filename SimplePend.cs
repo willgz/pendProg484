@@ -12,6 +12,8 @@ namespace Sim
         int n = 2;                  // number of states
         private double[] x;         // array of states
         private double[] f;         // right side of equation
+        private double[] xi;        // intermediate step
+        private double[,] sl;       // slope
 
         //--------------------------------------------------------------------
         // constructor
@@ -20,25 +22,46 @@ namespace Sim
         {
             x = new double[n];
             f = new double[n];
+            xi = new double[n];
+            sl = new double[n,4];
 
             x[0] = 1.0;
             x[1] = 0.0;
         }
 
         //--------------------------------------------------------------------
-        // step: perform one integration step via Euler's Method
+        // step: perform one integration step via Euler's Method or RK4 Method
         //--------------------------------------------------------------------
-        public void step(double dt)
+        public void step(double dt, string method = "EULER")
         {
             rhsFunc(x,f);
-            int i;
-            for(i=0; i<n;++i)
+            for(int i=0; i<n;++i)
             {
-                x[i] = x[i] + f[i] * dt;
+                if(method == "EULER")
+                {
+                    x[i] = x[i] + f[i] * dt;
+                }
+                else if(method == "RK4")
+                {
+                    sl[i,0] = f[i];
+
+                    xi[i] = x[i] + sl[i,0] * 0.5 * dt;
+                    rhsFunc(xi,f);
+                    sl[i,1] = f[i] + 0.5 * dt;
+
+                    xi[i] = x[i] + sl[i,1] * 0.5 * dt;
+                    rhsFunc(xi,f);
+                    sl[i,2] = f[i] + 0.5 * dt;
+
+                    xi[i] = x[i] + sl[i,2] * dt;
+                    rhsFunc(xi,f);
+                    sl[i,3] = f[i];
+
+                    x[i] = x[i]+(sl[i,0]+2*sl[i,1]+2*sl[i,2]+sl[i,3])*dt/6;
+                }
             }
-            //Console.WriteLine($"{f[0].ToString()}   {f[1].ToString()}");
         }
-        
+
         //--------------------------------------------------------------------
         // rhsFunc: function to calculate rhs of pendulum ODEs
         //--------------------------------------------------------------------
